@@ -926,7 +926,45 @@ def generate_dates(start_date, num_days):
         return np.array([ (start_date + timedelta(days=i)).strftime('%Y%m%d') for i in range(num_days, 1) ])
     else:
         return np.array([ (start_date + timedelta(days=i)).strftime('%Y%m%d') for i in range(num_days+1) ])
-    
+
+class StockDataset(Dataset):
+    def __init__(self, data_list, lookback, forecast):
+        # For each dataframe in the list, drop "ts_code" and "Date" columns and convert to numpy array
+        self.data_list = [df.drop(columns=["ts_code", "Date"]).values for df in data_list]
+        self.lookback = lookback
+        self.forecast = forecast
+
+    def __len__(self):
+        # Each stock contributes len(data) - lookback - forecast + 1 samples to the total length
+        return sum(len(data) - self.lookback - self.forecast + 1 for data in self.data_list)
+
+    def __getitem__(self, idx):
+        # Find which stock this index corresponds to
+        i = 0
+        while idx >= len(self.data_list[i]) - self.lookback - self.forecast + 1:
+            idx -= len(self.data_list[i]) - self.lookback - self.forecast + 1
+            i += 1
+            if i >= len(self.data_list):
+                raise IndexError("Index out of range")
+            
+        data = self.data_list[i]
+        
+        # extract lookback and forecast data
+        x = data[idx+self.forecast : idx+self.forecast+self.lookback][::-1]
+        y = data[idx : idx+self.forecast][::-1]
+
+        # normalize x
+        x_mean = np.mean(x, axis=0)
+        x_std = np.std(x, axis=0)
+        x = (x - x_mean) / x_std
+
+        # compute trend for y
+        y_trend = (np.array(y[-1]) - np.array(y[0])) > 0
+        y_trend = y_trend.astype(int)  # convert boolean to int
+
+        return torch.FloatTensor(x), torch.LongTensor(y_trend)
+
+
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000):
         super(PositionalEncoding, self).__init__()
