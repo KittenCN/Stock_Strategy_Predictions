@@ -1,3 +1,6 @@
+# 开发中，尚不能正常使用，请关注我另一个已经可以使用，且在测试的版本：https://github.com/KittenCN/stock_predictio  谢谢
+# Under development, not working yet, please follow my other version which is already working and in testing: https://github.com/KittenCN/stock_predictio  Thanks
+
 # 基于神经网络的通用股票预测模型 A general stock prediction model based on neural networks
 
 ## New
